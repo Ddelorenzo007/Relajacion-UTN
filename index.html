@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Método de Relajación — Cálculo Numérico UTN FRLP</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Kalam:wght@400;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<div class="shell">
+  <nav class="rail" id="rail">
+    <div class="brand">Relajación</div>
+    <a href="#introduccion">Introducción</a>
+    <a href="#fundamento">El residuo</a>
+    <a href="#algoritmo">Algoritmo</a>
+    <a href="#calculadora">Calculadora</a>
+    <a href="#ejercicio">Ejercicio resuelto</a>
+    <a href="#comparacion">Vs. Jacobi / G-S</a>
+    <a href="#balance">Ventajas y límites</a>
+    <a href="#fuentes">Fuentes</a>
+  </nav>
+
+  <main>
+    <section class="hero">
+      <p class="eyebrow">Métodos iterativos · Sistemas de ecuaciones lineales</p>
+      <h1>Método de<br>Relajación</h1>
+      <p class="lead">En cada vuelta, el método mira las n ecuaciones del sistema, encuentra la que está más lejos de cumplirse, y corrige <em>únicamente</em> la variable responsable de esa ecuación. Nada más se toca.</p>
+
+      <div class="hero-eq">
+        <span>R<sub>i</sub>(x) = valor&nbsp;propuesto − x<sub>i</sub></span>
+        <span class="arrow">→</span>
+        <span>x<sub>i</sub> ← x<sub>i</sub> + R<sub>i</sub></span>
+      </div>
+
+      <div class="btnrow">
+        <a href="#calculadora" class="btn primary">Probar la calculadora ↓</a>
+        <a href="#algoritmo" class="btn">Ver el algoritmo</a>
+      </div>
+
+      <p class="hero-meta">Análisis Numérico — UTN Facultad Regional La Plata<br>Grupo N.º 4 · Alconada, Pedro - Cabrer, Tadeo - De Lorenzo, Dante - Salvagnini, Gino</p>
+    </section>
+
+    <section id="introduccion">
+      <p class="eyebrow">01 — Introducción</p>
+      <h2>De la solución exacta a la aproximada</h2>
+      <p>Un sistema de ecuaciones lineales A·x = b se puede resolver de dos maneras: con <b>métodos directos</b> (Gauss, Cramer, factorización LU), que llegan al resultado exacto en un número finito de pasos, o con <b>métodos iterativos</b>, que arrancan de un vector cualquiera y lo van corrigiendo hasta acercarse mucho a la solución real.</p>
+      <p>Ya vieron dos métodos iterativos hoy: <b>Jacobi</b> y <b>Gauss-Seidel</b>. Los dos recalculan <em>todas</em> las incógnitas en cada vuelta. El método de <b>Relajación</b> pertenece a la misma familia, pero cambia la estrategia: en cada iteración toca <em>una sola</em> variable — la que más lo necesita.</p>
+      <div class="box note">
+        <div class="box-title">Idea central</div>
+        <p>Cada ecuación del sistema le "pertenece" a una incógnita. Relajación mide cuánto le falta a cada ecuación para cerrar en cero, y arregla primero la que está más rota.</p>
+      </div>
+    </section>
+
+    <section id="fundamento">
+      <p class="eyebrow">02 — Fundamento</p>
+      <h2>Qué es un residuo, exactamente</h2>
+      <p>Para la ecuación i del sistema, despejar x<sub>i</sub> usando los valores actuales de las demás variables es exactamente lo que hace Jacobi en cada fila. Llamamos a ese resultado el <b>valor propuesto</b> para x<sub>i</sub>:</p>
+
+      <div class="formula">
+        <span class="lbl">Valor que "propone" la ecuación i para x<sub>i</sub></span>
+        x<sub>i</sub>&nbsp;propuesto&nbsp;=&nbsp;( b<sub>i</sub>&nbsp;−&nbsp;Σ<sub>j≠i</sub> a<sub>ij</sub>·x<sub>j</sub> )&nbsp;/&nbsp;a<sub>ii</sub>
+      </div>
+
+      <p>El <b>residuo</b> R<sub>i</sub> es simplemente la distancia entre ese valor propuesto y el valor que la variable tiene ahora mismo:</p>
+
+      <div class="formula">
+        <span class="lbl">Residuo de la ecuación i</span>
+        R<sub>i</sub>(x)&nbsp;=&nbsp;x<sub>i</sub>&nbsp;propuesto&nbsp;−&nbsp;x<sub>i</sub>&nbsp;actual
+      </div>
+
+      <p>Si R<sub>i</sub> da 0, la ecuación i ya está satisfecha con los valores actuales. Cuanto más grande sea |R<sub>i</sub>|, más lejos está esa ecuación de cumplirse — y más urgente es corregirla.</p>
+
+      <div class="box note">
+        <div class="box-title">Conexión con lo que ya vieron</div>
+        <p>Esta fórmula es la misma cuenta que hace Jacobi para actualizar x<sub>i</sub>. La diferencia no está en cómo se calcula el candidato, sino en <b>cuándo se acepta</b>: Jacobi acepta los n candidatos juntos en cada vuelta; Relajación acepta uno solo — el del residuo más grande.</p>
+      </div>
+    </section>
+
+    <section id="algoritmo">
+      <p class="eyebrow">03 — Algoritmo</p>
+      <h2>El procedimiento, paso a paso</h2>
+      <ol class="steps">
+        <li><b>Condición de partida:</b> ningún a<sub>ii</sub> puede ser cero (si pasa, se reordenan ecuaciones e incógnitas). Si la matriz es diagonalmente dominante, es más probable que el método converja — igual que con Jacobi y Gauss-Seidel.</li>
+        <li><b>Calcular todos los residuos</b> R<sub>1</sub>, R<sub>2</sub>, …, R<sub>n</sub> con el vector actual.</li>
+        <li><b>Elegir el mayor en valor absoluto:</b> i* = el índice donde |R<sub>i</sub>| es más grande.</li>
+        <li><b>Corregir sólo esa variable:</b> x<sub>i*</sub> ← x<sub>i*</sub> + R<sub>i*</sub>. Las demás quedan exactamente igual.</li>
+        <li><b>Repetir</b> desde el paso 2 con el vector actualizado, hasta que todos los residuos sean suficientemente chicos.</li>
+      </ol>
+      <div class="box note">
+        <div class="box-title">Por qué el residuo corregido da cero después</div>
+        <p>Al sumarle R<sub>i*</sub> a x<sub>i*</sub>, el nuevo valor de x<sub>i*</sub> es exactamente el "valor propuesto" por su propia ecuación — por definición, eso hace que esa ecuación cierre en cero. Por eso, en la próxima vuelta, el residuo que acaban de usar da 0.</p>
+      </div>
+    </section>
+
+    <section id="calculadora" class="wide">
+      <p class="eyebrow">04 — Herramienta</p>
+      <h2>Calculadora de Relajación</h2>
+      <p>Elegí el tamaño del sistema, cargá los coeficientes y el vector inicial, y corré las iteraciones. La tabla de abajo funciona igual que la que arma el apunte a mano.</p>
+
+      <div class="box speak">
+        <div class="box-title">Para usar en vivo</div>
+        <p>Pídanle a la audiencia un sistema 2×2 o 3×3 (o usen los ejemplos precargados) y resuélvanlo acá mismo durante la exposición. <br><br>💡 <b>Tip de visualización:</b> Pasá el cursor sobre cualquier residuo generado en la tabla para ver la cuenta exacta término por término.</p>
+      </div>
+
+      <div class="calc-panel">
+        <div class="presets">
+          <button class="btn small" id="preset-2x2" type="button">Cargar ejemplo 2×2</button>
+          <button class="btn small" id="preset-3x3" type="button">Cargar ejemplo del apunte (3×3)</button>
+          <button class="btn small" id="preset-diverge" type="button">Cargar ejemplo divergente</button>
+        </div>
+
+        <p class="dim" style="font-size:0.82rem; margin-top:-4px;">Esta calculadora trabaja con el sistema transformado internamente. Dependiendo de los decimales (sin redondeos prematuros), podés notar mínimas diferencias con los cálculos a mano, pero convergen a la misma solución.</p>
+
+        <div class="size-picker" id="size-picker" role="group" aria-label="Tamaño del sistema"></div>
+
+        <div id="matrix-form"></div>
+        <div id="diag-status"></div>
+
+        <h3 style="margin-top:26px; font-size:1rem;">Sistema transformado (a<sub>ii</sub> = −1)</h3>
+        <div class="transformed" id="transformed-view"></div>
+
+        <div class="controls">
+          <label>Iteraciones a correr
+            <input type="number" id="iter-count" value="6" min="1" max="60">
+          </label>
+          <label>
+            <input type="checkbox" id="auto-stop" checked style="width:auto;">
+            Detener si converge (tolerancia 1e-6)
+          </label>
+          <button class="btn primary small" id="btn-run" type="button">Iterar</button>
+          <button class="btn small" id="btn-step" type="button">Un paso</button>
+          <button class="btn small" id="btn-reset" type="button">Reiniciar</button>
+        </div>
+        <div class="status-line" id="status-line"></div>
+
+        <div class="vector-display" id="vector-display"></div>
+
+        <div class="table-scroll">
+          <table id="history-table">
+            <thead><tr id="history-head"></tr></thead>
+            <tbody id="history-body"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <section id="ejercicio">
+      <p class="eyebrow">05 — Ejercicio resuelto</p>
+      <h2>El sistema del apunte, a mano</h2>
+      <p>Sistema de partida:</p>
+      <div class="formula">
+        10x₁&nbsp;+&nbsp;3x₂&nbsp;+&nbsp;x₃&nbsp;=&nbsp;7<br>
+        2x₁&nbsp;+&nbsp;15x₂&nbsp;+&nbsp;4x₃&nbsp;=&nbsp;−16<br>
+        x₁&nbsp;+&nbsp;2x₂&nbsp;+&nbsp;20x₃&nbsp;=&nbsp;57
+      </div>
+      <p>Vector inicial: x⁽⁰⁾ = (0.8, −1.7, 2.5). Solución exacta del sistema (para comparar): (1, −2, 3).</p>
+
+      <div class="table-scroll">
+        <table>
+          <thead>
+            <tr><th>Iteración k</th><th>x₁</th><th>R₁</th><th>x₂</th><th>R₂</th><th>x₃</th><th>R₃</th><th class="cambia-col">Cambia</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>0</td><td>0.8</td><td>0.16</td><td>−1.7</td><td>−0.1374</td><td>2.5</td><td class="max-residual">0.48</td><td class="cambia-col">x₃ = 2.5 + 0.48 = 2.98</td></tr>
+            <tr><td>1</td><td>0.8</td><td>0.112</td><td>−1.7</td><td class="max-residual">−0.26508</td><td>2.98</td><td>0</td><td class="cambia-col">x₂ = −1.7 − 0.26508 = −1.96508</td></tr>
+            <tr><td>2</td><td>0.8</td><td class="max-residual">0.1915</td><td>−1.96508</td><td>0</td><td>2.98</td><td>0.0265</td><td class="cambia-col">x₁ = 0.8 + 0.1915 = 0.9915</td></tr>
+            <tr><td>3</td><td>0.9915</td><td>0</td><td>−1.96508</td><td class="max-residual">−0.02546</td><td>2.98</td><td>0.01693</td><td class="cambia-col">x₂ = −1.96508 − 0.02546 = −1.99054</td></tr>
+            <tr><td>Solución (k=4)</td><td colspan="6">x = (0.9915, −1.99054, 2.98)</td><td class="cambia-col">—</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <details class="step-details">
+        <summary>🔎 Ver desarrollo detallado de la primera iteración</summary>
+        <div class="step-content">
+          <h4>Primera iteración, mostrando cada cuenta</h4>
+          <p>Vector inicial (dato del problema): <b>x₁=0.8, x₂=-1.7, x₃=2.5</b></p>
+          <p>Reemplazo esos tres valores en las tres fórmulas de residuo (del sistema transformado):</p>
+          
+          <p><b>R₁ = -(0.8) - 0.3×(-1.7) - 0.1×(2.5) + 0.7</b></p>
+          <ul>
+            <li>-(0.8) = -0.8</li>
+            <li>-0.3 × (-1.7) = +0.51</li>
+            <li>-0.1 × (2.5) = -0.25</li>
+            <li>+ 0.7</li>
+            <li><i>Sumo todo:</i> -0.8 + 0.51 - 0.25 + 0.7 = <b>0.16</b></li>
+          </ul>
+
+          <p><b>R₂ = -0.1333×(0.8) - (-1.7) - 0.2667×(2.5) - 1.0667</b></p>
+          <ul>
+            <li>-0.1333 × 0.8 = -0.1067</li>
+            <li>-(-1.7) = +1.7</li>
+            <li>-0.2667 × 2.5 = -0.6667</li>
+            <li>-1.0667</li>
+            <li><i>Sumo:</i> -0.1067 + 1.7 - 0.6667 - 1.0667 = <b>-0.1374</b></li>
+          </ul>
+
+          <p><b>R₃ = -0.05×(0.8) - 0.1×(-1.7) - (2.5) + 2.85</b></p>
+          <ul>
+            <li>-0.05 × 0.8 = -0.04</li>
+            <li>-0.1 × (-1.7) = +0.17</li>
+            <li>-(2.5) = -2.5</li>
+            <li>+2.85</li>
+            <li><i>Sumo:</i> -0.04 + 0.17 - 2.5 + 2.85 = <b>0.48</b></li>
+          </ul>
+
+          <h4>¿Por qué elegimos el mayor en valor absoluto?</h4>
+          <p>Ahora tenemos tres números: |R₁|=0.16, |R₂|=0.1374, |R₃|=0.48. El más grande es R₃. La lógica es: la ecuación 3 es la que está "más rota" en este momento, la que más lejos está de cumplirse. Tiene sentido priorizarla — es donde más impacto tiene arreglar algo, y además es la que "controla" x₃.</p>
+
+          <h4>La corrección — y por qué funciona</h4>
+          <p>La fórmula es: <code>x_i nuevo = x_i viejo + R_i</code><br>
+          Para x₃: <b>x₃_nuevo = 2.5 + 0.48 = 2.98</b></p>
+          <p>¿Por qué sumarle justo el residuo, ni más ni menos? Porque si volvés a mirar la ecuación de R₃:</p>
+          <div class="formula" style="font-size: 0.9rem; padding: 10px;">R₃ = -0.05x₁ - 0.1x₂ - x₃ + 2.85</div>
+          <p>x₃ aparece con coeficiente -1. Si a x₃ le sumás una cantidad δ, R₃ cambia en exactamente -δ (porque el coeficiente es -1). Entonces, si quiero que el nuevo R₃ dé cero:</p>
+          <ul>
+            <li>R₃_nuevo = R₃_viejo + (-1)×δ = 0</li>
+            <li>0.48 - δ = 0</li>
+            <li><b>δ = 0.48</b></li>
+          </ul>
+          <p>O sea: el incremento que hay que sumarle a la variable para que su ecuación cierre exacto es justo el residuo. ¡Sale directo de que el coeficiente de la diagonal vale -1 en el sistema transformado!</p>
+          <p>Nuevo vector: <b>x₁=0.8</b> (no se tocó), <b>x₂=-1.7</b> (no se tocó), <b>x₃=2.98</b></p>
+        </div>
+      </details>
+    </section>
+
+    <section id="comparacion">
+      <p class="eyebrow">06 — Comparación</p>
+      <h2>Relajación frente a Jacobi y Gauss-Seidel</h2>
+      <div class="table-scroll">
+        <table class="compare">
+          <thead>
+            <tr><th></th><th>Jacobi</th><th>Gauss-Seidel</th><th>Relajación</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>Qué actualiza en cada vuelta</td><td>Todas las variables</td><td>Todas las variables</td><td class="hl">Una sola variable</td></tr>
+            <tr><td>Valores que usa para actualizar</td><td>Sólo de la iteración anterior</td><td>Mezcla: nuevos + anteriores</td><td>El vector actual completo</td></tr>
+            <tr><td>Criterio para elegir qué corregir</td><td>No aplica (corrige todo)</td><td>No aplica (corrige todo)</td><td class="hl">El mayor residuo en valor absoluto</td></tr>
+            <tr><td>Condición práctica de convergencia</td><td>Diagonal dominante (suficiente, no necesaria)</td><td>Diagonal dominante (suficiente, no necesaria)</td><td>a<sub>ii</sub> ≠ 0; diagonal dominante ayuda</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section id="balance">
+      <p class="eyebrow">07 — Balance</p>
+      <h2>Ventajas y limitaciones</h2>
+      <h3>Ventajas</h3>
+      <p>Simple de aplicar a mano en sistemas chicos. Cada paso ataca directamente el mayor error del momento, lo que suele acelerar la convergencia frente a corregir todo por igual. Fácil de seguir con una tabla, sin álgebra matricial pesada.</p>
+      <h3>Limitaciones</h3>
+      <p>Hay que recalcular todos los residuos en cada vuelta sólo para saber cuál es el mayor, lo que implica más comparaciones que Jacobi o Gauss-Seidel. Para sistemas grandes resueltos a mano se vuelve tedioso. Al depender de "cuál es el peor ahora", es menos directo de paralelizar que Jacobi.</p>
+    </section>
+
+    <section id="fuentes">
+      <p class="eyebrow">08 — Fuentes</p>
+      <h2>Material consultado</h2>
+      <ul class="src-list">
+        <li>Amiconi, D. F. — <em>Teoría: Resolución de Sistemas de Ecuaciones Lineales</em>, Cátedra de Cálculo Numérico, UTN Facultad Regional La Plata.</li>
+        <li>Amiconi, D. F. — <em>Ejercicio resuelto: Método de Relajación</em>, Cátedras de Modelos Numéricos, Análisis Numérico y Cálculo Avanzado, UTN FRLP.</li>
+        <li>Burden, R. L. &amp; Faires, J. D. — <em>Numerical Analysis</em>, capítulo sobre métodos iterativos para sistemas lineales (bibliografía general de referencia).</li>
+      </ul>
+    </section>
+
+    <footer>
+      Análisis Numérico — UTN Facultad Regional La Plata · Método de Relajación
+    </footer>
+  </main>
+</div>
+
+<div id="custom-tooltip" class="tooltip-box"></div>
+
+<script src="script.js"></script>
+</body>
+</html>
