@@ -77,7 +77,7 @@
     updateSizeButtons();
   }
 
-  function loadExample(key){
+  function loadExample(key, skipScroll){
     var ex = EXAMPLES[key];
     state.n = ex.n;
     state.A = ex.A.map(function(r){ return r.slice(); });
@@ -86,7 +86,11 @@
     buildForm();
     resetRun();
     updateSizeButtons();
-    document.getElementById('calculadora').scrollIntoView({behavior:'smooth', block:'start'});
+    
+    // Solo hace el scroll si NO le pasamos la orden de saltarlo
+    if (!skipScroll) {
+      document.getElementById('calculadora').scrollIntoView({behavior:'smooth', block:'start'});
+    }
   }
   document.getElementById('preset-2x2').addEventListener('click', function(){ loadExample('2x2'); });
   document.getElementById('preset-3x3').addEventListener('click', function(){ loadExample('3x3'); });
@@ -474,6 +478,6 @@
   });
 
   // ---------------- init ----------------
-  loadExample('3x3');
+  loadExample('3x3', true);
   onScroll();
 })();
