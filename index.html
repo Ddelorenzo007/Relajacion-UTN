@@ -80,26 +80,32 @@
       </div>
     </section>
 
-    <section id="algoritmo">
+<section id="algoritmo">
       <p class="eyebrow">03 — Algoritmo</p>
       <h2>El procedimiento, paso a paso</h2>
       <ol class="steps">
-        <li><b>Condición de partida:</b> ningún a<sub>ii</sub> puede ser cero (si pasa, se reordenan ecuaciones e incógnitas). Si la matriz es diagonalmente dominante, es más probable que el método converja — igual que con Jacobi y Gauss-Seidel.</li>
+        <li><b>Condición de partida:</b> ningún a<sub>ii</sub> puede ser cero (si pasa, se reordenan ecuaciones e incógnitas). Si la matriz es diagonalmente dominante, es más probable que el método converja.</li>
         <li><b>Calcular todos los residuos</b> R<sub>1</sub>, R<sub>2</sub>, …, R<sub>n</sub> con el vector actual.</li>
         <li><b>Elegir el mayor en valor absoluto:</b> i* = el índice donde |R<sub>i</sub>| es más grande.</li>
         <li><b>Corregir sólo esa variable:</b> x<sub>i*</sub> ← x<sub>i*</sub> + R<sub>i*</sub>. Las demás quedan exactamente igual.</li>
-        <li><b>Repetir</b> desde el paso 2 con el vector actualizado, hasta que todos los residuos sean suficientemente chicos.</li>
+        <li><b>Repetir</b> desde el paso 2 con el vector actualizado, hasta cumplir el criterio de parada.</li>
       </ol>
+
+      <!-- AGREGADO: Explicación de Criterios de Parada -->
       <div class="box note">
-        <div class="box-title">Por qué el residuo corregido da cero después</div>
-        <p>Al sumarle R<sub>i*</sub> a x<sub>i*</sub>, el nuevo valor de x<sub>i*</sub> es exactamente el "valor propuesto" por su propia ecuación — por definición, eso hace que esa ecuación cierre en cero. Por eso, en la próxima vuelta, el residuo que acaban de usar da 0.</p>
+        <div class="box-title">¿Cuándo paramos de iterar? (Criterios de parada)</div>
+        <p>En la práctica real no conocemos la solución exacta para compararla. Por eso, el método debe darse cuenta por sí solo cuándo detenerse usando una "tolerancia" (ε). Hay dos formas principales de hacerlo:</p>
+        <ul style="margin-bottom: 0;">
+          <li><b>Por el residuo (Usado en esta calculadora):</b> Se detiene cuando el mayor residuo en valor absoluto es menor a la tolerancia (ej: |R<sub>max</sub>| < 10⁻⁶). Si el residuo es casi cero, significa que las ecuaciones ya "cierran".</li>
+          <li><b>Por diferencia entre iteraciones:</b> Se detiene cuando la distancia entre el vector nuevo y el anterior es menor a la tolerancia ( ||x<sup>(k)</sup> - x<sup>(k-1)</sup>|| < ε ). O sea, cuando iterar ya casi no cambia los valores.</li>
+        </ul>
       </div>
     </section>
 
     <section id="calculadora" class="wide">
       <p class="eyebrow">04 — Herramienta</p>
       <h2>Calculadora de Relajación</h2>
-      <p>Elegí el tamaño del sistema, cargá los coeficientes y el vector inicial, y corré las iteraciones. La tabla de abajo funciona igual que la que arma el apunte a mano.</p>
+      <p>Elegí el tamaño del sistema, cargá los coeficientes y el vector inicial, y corré las iteraciones.</p>
 
       <div class="box speak">
         <div class="box-title">Para usar en vivo</div>
@@ -113,12 +119,21 @@
           <button class="btn small" id="preset-diverge" type="button">Cargar ejemplo divergente</button>
         </div>
 
-        <p class="dim" style="font-size:0.82rem; margin-top:-4px;">Esta calculadora trabaja con el sistema transformado internamente. Dependiendo de los decimales (sin redondeos prematuros), podés notar mínimas diferencias con los cálculos a mano, pero convergen a la misma solución.</p>
+        <p class="dim" style="font-size:0.82rem; margin-top:-4px;">Esta calculadora trabaja con el sistema transformado internamente.</p>
 
         <div class="size-picker" id="size-picker" role="group" aria-label="Tamaño del sistema"></div>
 
         <div id="matrix-form"></div>
         <div id="diag-status"></div>
+
+        <!-- AGREGADO: Desplegable con el resultado exacto -->
+        <details class="step-details" style="margin-top: 15px; background: rgba(13,110,253,0.03);">
+          <summary>🎯 Ver resultado exacto del sistema (para comparar)</summary>
+          <div class="step-content" id="exact-solution-content">
+            <!-- JS va a inyectar el resultado exacto acá -->
+          </div>
+          <p class="dim" style="font-size: 0.8rem; margin-top: 8px;">* Calculado internamente mediante eliminación gaussiana directa, independientemente de las iteraciones.</p>
+        </details>
 
         <h3 style="margin-top:26px; font-size:1rem;">Sistema transformado (a<sub>ii</sub> = −1)</h3>
         <div class="transformed" id="transformed-view"></div>
@@ -147,7 +162,7 @@
         </div>
       </div>
     </section>
-
+    
     <section id="ejercicio">
       <p class="eyebrow">05 — Ejercicio resuelto</p>
       <h2>El sistema del apunte, a mano</h2>

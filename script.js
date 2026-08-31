@@ -91,7 +91,62 @@
   document.getElementById('preset-2x2').addEventListener('click', function(){ loadExample('2x2'); });
   document.getElementById('preset-3x3').addEventListener('click', function(){ loadExample('3x3'); });
   document.getElementById('preset-diverge').addEventListener('click', function(){ loadExample('diverge'); });
-  
+  // ---------------- Exact Solver (Eliminación Gaussiana) ----------------
+  function solveExact(A_orig, b_orig, n) {
+    var A = A_orig.map(function(row) { return row.slice(); });
+    var b = b_orig.slice();
+
+    for (var i = 0; i < n; i++) {
+      // Pivoteo parcial para mayor estabilidad
+      var maxEl = Math.abs(A[i][i]), maxRow = i;
+      for (var k = i + 1; k < n; k++) {
+        if (Math.abs(A[k][i]) > maxEl) { maxEl = Math.abs(A[k][i]); maxRow = k; }
+      }
+      if (maxRow !== i) {
+        var tmp = A[i]; A[i] = A[maxRow]; A[maxRow] = tmp;
+        var tmpB = b[i]; b[i] = b[maxRow]; b[maxRow] = tmpB;
+      }
+      
+      // Si la matriz es singular (determinante 0)
+      if (Math.abs(A[i][i]) < 1e-10) return null;
+
+      // Eliminación hacia adelante
+      for (var k = i + 1; k < n; k++) {
+        var c = -A[k][i] / A[i][i];
+        for (var j = i; j < n; j++) {
+          if (i === j) A[k][j] = 0;
+          else A[k][j] += c * A[i][j];
+        }
+        b[k] += c * b[i];
+      }
+    }
+
+    // Sustitución hacia atrás
+    var x = new Array(n).fill(0);
+    for (var i = n - 1; i >= 0; i--) {
+      x[i] = b[i];
+      for (var k = i + 1; k < n; k++) { x[i] -= A[i][k] * x[k]; }
+      x[i] = x[i] / A[i][i];
+    }
+    return x;
+  }
+
+  function renderExactSolution() {
+    var container = document.getElementById('exact-solution-content');
+    var exactX = solveExact(state.A, state.b, state.n);
+    
+    if (!exactX) {
+      container.innerHTML = '<p class="diag-warning">El sistema no tiene una solución única (matriz singular).</p>';
+      return;
+    }
+    
+    var html = '<div class="vector-display" style="margin-top: 10px; margin-bottom: 0;">';
+    for (var i = 0; i < state.n; i++) {
+      html += '<div class="vd-item"><span class="k">x' + sub(i+1) + ' exacta</span><span class="v" style="color: var(--chalk-teal);">' + fmt(exactX[i]) + '</span></div>';
+    }
+    html += '</div>';
+    container.innerHTML = html;
+  }
   // ---------------- build the input form ----------------
   var formEl = document.getElementById('matrix-form');
 
@@ -176,6 +231,7 @@
     }
     checkDiagonal();
     renderTransformed();
+    renderExactSolution(); // <-- ESTA ES LA LÍNEA NUEVA
     resetRun();
   }
 
