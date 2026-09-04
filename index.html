@@ -50,23 +50,22 @@
 
     <section id="fundamento">
       <p class="eyebrow">02 — Fundamento</p>
-      <h2>Qué es un residuo, exactamente</h2>
-      <p>Para la ecuación i del sistema, despejar x<sub>i</sub> usando los valores actuales de las demás variables es exactamente lo que hace Jacobi en cada fila. Llamamos a ese resultado el <b>valor propuesto</b> para x<sub>i</sub>:</p>
+      <h2>El sistema transformado y los residuos</h2>
+      <p>Para aplicar el método de relajación, el primer paso fundamental es <b>transformar el sistema original</b>. Tomamos cada ecuación i y la normalizamos dividiendo todos sus términos por el coeficiente de la diagonal principal (a<sub>ii</sub>) y multiplicando por −1, de modo que la diagonal principal quede igual a <b>−1</b>:</p>
 
       <div class="formula">
-        <span class="lbl">Valor que "propone" la ecuación i para x<sub>i</sub></span>
-        x<sub>i</sub>&nbsp;propuesto&nbsp;=&nbsp;( b<sub>i</sub>&nbsp;−&nbsp;Σ<sub>j≠i</sub> a<sub>ij</sub>·x<sub>j</sub> )&nbsp;/&nbsp;a<sub>ii</sub>
+        <span class="lbl">Ecuación transformada (con diagonal = −1)</span>
+        −x<sub>i</sub>&nbsp;−&nbsp;Σ<sub>j≠i</sub> (a<sub>ij</sub>&nbsp;/&nbsp;a<sub>ii</sub>)·x<sub>j</sub>&nbsp;+&nbsp;(b<sub>i</sub>&nbsp;/&nbsp;a<sub>ii</sub>)&nbsp;=&nbsp;0
       </div>
 
-      <p>El <b>residuo</b> R<sub>i</sub> es simplemente la distancia entre ese valor propuesto y el valor que la variable tiene ahora mismo:</p>
+      <p>El <b>residuo R<sub>i</sub></b> de la ecuación i se define exactamente como el valor que resulta de evaluar el vector actual dentro de esta expresión transformada:</p>
 
       <div class="formula">
-        <span class="lbl">Residuo de la ecuación i</span>
-        R<sub>i</sub>(x)&nbsp;=&nbsp;x<sub>i</sub>&nbsp;propuesto&nbsp;−&nbsp;x<sub>i</sub>&nbsp;actual
+        <span class="lbl">Cálculo del Residuo</span>
+        R<sub>i</sub>(x)&nbsp;=&nbsp;−x<sub>i</sub>&nbsp;−&nbsp;Σ<sub>j≠i</sub> (a<sub>ij</sub>&nbsp;/&nbsp;a<sub>ii</sub>)·x<sub>j</sub>&nbsp;+&nbsp;(b<sub>i</sub>&nbsp;/&nbsp;a<sub>ii</sub>)
       </div>
 
-      <p>Si R<sub>i</sub> da 0, la ecuación i ya está satisfecha con los valores actuales. Cuanto más grande sea |R<sub>i</sub>|, más lejos está esa ecuación de cumplirse — y más urgente es corregirla.</p>
-
+      <p>Si R<sub>i</sub> da 0, la ecuación ya está satisfecha. Cuanto mayor sea |R<sub>i</sub>|, más lejos estamos del equilibrio y mayor es la necesidad de corregir esa variable.</p>
     </section>
 
 <section id="algoritmo">
