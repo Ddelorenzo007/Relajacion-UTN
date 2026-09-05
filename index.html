@@ -3,264 +3,676 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Método de Relajación — Análisis Numérico UTN FRLP</title>
+<title>Método de Relajación — Cálculo Numérico UTN FRLP</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Kalam:wght@400;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="styles.css">
+<style>
+  :root{
+    --board: #1F3B3D;
+    --board-deep: #142829;
+    --board-line: #2C5154;
+    --chalk: #EDEAE0;
+    --chalk-dim: #9FB3B0;
+    --chalk-yellow: #E8C468;
+    --chalk-pink: #E08FA6;
+    --chalk-teal: #7FD9CB;
+    --radius: 6px;
+  }
+  *{box-sizing:border-box;}
+  html{scroll-behavior:smooth; font-size:20px;}
+  @media (prefers-reduced-motion: reduce){
+    html{scroll-behavior:auto;}
+    *{animation-duration:0.01ms !important; transition-duration:0.01ms !important;}
+  }
+  body{
+    margin:0;
+    background:
+      radial-gradient(ellipse at 20% -10%, rgba(255,255,255,0.05), transparent 40%),
+      radial-gradient(ellipse at 90% 10%, rgba(255,255,255,0.035), transparent 35%),
+      var(--board);
+    color:var(--chalk);
+    font-family:'IBM Plex Sans', sans-serif;
+    line-height:1.7;
+    font-size:1.15rem;
+  }
+  h1,h2,h3,.display{
+    font-family:'Kalam', cursive;
+    font-weight:700;
+    color:var(--chalk);
+    letter-spacing:0.3px;
+  }
+  code,.mono,input,.num,table{
+    font-family:'IBM Plex Mono', monospace;
+  }
+  a{color:var(--chalk-teal);}
+  ::selection{background:var(--chalk-yellow); color:var(--board-deep);}
+
+  /* focus visibility */
+  a:focus-visible, button:focus-visible, input:focus-visible{
+    outline:2px solid var(--chalk-yellow);
+    outline-offset:2px;
+  }
+
+  /* ---------- layout shell ---------- */
+  .shell{
+    display:grid;
+    grid-template-columns: 280px 1fr;
+    max-width:1180px;
+    margin:0 auto;
+  }
+  @media (max-width: 960px){
+    .shell{grid-template-columns: 1fr;}
+  }
+
+  nav.rail{
+    position:sticky;
+    top:0;
+    align-self:start;
+    height:100vh;
+    overflow-y:auto;
+    padding:32px 18px 32px 28px;
+    border-right:1px dashed var(--board-line);
+  }
+  @media (max-width: 960px){
+    nav.rail{
+      position:sticky;
+      height:auto;
+      top:0;
+      z-index:20;
+      display:flex;
+      gap:4px;
+      overflow-x:auto;
+      padding:12px 14px;
+      border-right:none;
+      border-bottom:1px dashed var(--board-line);
+      background:var(--board-deep);
+    }
+  }
+  nav.rail .brand{
+    font-family:'Kalam', cursive;
+    font-size:1.3rem;
+    margin-bottom:18px;
+    color:var(--chalk-yellow);
+  }
+  @media (max-width:960px){ nav.rail .brand{display:none;} }
+  nav.rail a{
+    display:block;
+    color:var(--chalk-dim);
+    text-decoration:none;
+    font-size:0.85rem;
+    padding:7px 10px;
+    border-radius:var(--radius);
+    white-space:normal;
+    line-height:1.35;
+    transition:background .15s, color .15s;
+  }
+  nav.rail a:hover{ background:rgba(255,255,255,0.06); color:var(--chalk); }
+  nav.rail a.active{ color:var(--chalk-yellow); }
+  .rail-sep{
+    border-top:1px dashed var(--board-line);
+    margin:14px 10px 10px;
+  }
+  @media (max-width:960px){ .rail-sep{ border-top:none; border-left:1px dashed var(--board-line); margin:0 6px; } }
+  nav.rail a.rail-tool{
+    color:var(--chalk-teal);
+    font-size:0.8rem;
+    text-transform:uppercase;
+    letter-spacing:1px;
+  }
+  nav.rail a.rail-tool.active{ color:var(--chalk-yellow); }
+
+  /* ---------- collapsible calculator ---------- */
+  details.calc-details{
+    border:1px solid var(--board-line);
+    border-radius:10px;
+    background:linear-gradient(180deg, rgba(255,255,255,0.02), transparent);
+    overflow:hidden;
+  }
+  details.calc-details summary{
+    list-style:none;
+    cursor:pointer;
+    padding:20px 26px;
+    font-family:'Kalam', cursive;
+    font-size:1.3rem;
+    color:var(--chalk);
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:12px;
+  }
+  details.calc-details summary::-webkit-details-marker{ display:none; }
+  details.calc-details summary .chevron{
+    font-family:'IBM Plex Sans', sans-serif;
+    font-size:0.9rem;
+    color:var(--chalk-teal);
+    transition:transform .15s;
+    flex-shrink:0;
+  }
+  details.calc-details[open] summary .chevron{ transform:rotate(90deg); }
+  details.calc-details summary:hover{ background:rgba(255,255,255,0.04); }
+  details.calc-details summary .sub{
+    font-family:'IBM Plex Sans', sans-serif;
+    font-size:0.78rem;
+    color:var(--chalk-dim);
+    text-transform:none;
+    letter-spacing:0;
+    display:block;
+    margin-top:4px;
+  }
+  details.calc-details .calc-panel{
+    border:none;
+    border-top:1px dashed var(--board-line);
+    border-radius:0;
+    padding:26px;
+  }
+
+  main{ padding: 0 28px 100px; }
+  @media (max-width:960px){ main{padding:0 18px 80px;} }
+
+  section{ padding-top:64px; max-width:760px; }
+  section.wide{ max-width:100%; }
+  section:first-of-type{padding-top:0;}
+
+  .eyebrow{
+    text-transform:uppercase;
+    letter-spacing:2px;
+    font-size:0.72rem;
+    color:var(--chalk-pink);
+    font-weight:600;
+    margin:0 0 8px;
+  }
+  h2{ font-size:2rem; margin:0 0 20px; }
+  h3{ font-size:1.3rem; margin:32px 0 12px; color:var(--chalk-teal); }
+  p{ color:var(--chalk); opacity:0.92; }
+  .dim{ color:var(--chalk-dim); }
+
+  .divider{
+    border:none;
+    border-top:1px dashed var(--board-line);
+    margin:56px 0 0;
+  }
+
+  /* ---------- hero ---------- */
+  .hero{
+    padding:72px 0 40px;
+    max-width:100%;
+  }
+  .hero .eyebrow{color:var(--chalk-teal);}
+  .hero h1{
+    font-size:clamp(2.6rem, 6vw, 4.6rem);
+    line-height:1.05;
+    margin:6px 0 18px;
+  }
+  .hero p.lead{
+    font-size:1.15rem;
+    max-width:620px;
+    color:var(--chalk);
+    opacity:0.95;
+  }
+  .hero-eq{
+    margin:34px 0 30px;
+    font-family:'IBM Plex Mono', monospace;
+    font-size:clamp(1rem, 2.6vw, 1.4rem);
+    color:var(--chalk-yellow);
+    display:flex;
+    align-items:center;
+    gap:16px;
+    flex-wrap:wrap;
+    opacity:0;
+    animation: chalkIn 900ms ease-out 200ms forwards;
+  }
+  @keyframes chalkIn{
+    from{ opacity:0; transform:translateY(6px); }
+    to{ opacity:1; transform:translateY(0); }
+  }
+  .hero-eq .arrow{ color:var(--chalk-dim); }
+  .hero-meta{
+    margin-top:28px;
+    font-size:0.9rem;
+    color:var(--chalk-dim);
+    border-left:2px solid var(--board-line);
+    padding-left:14px;
+  }
+  .btnrow{ display:flex; gap:12px; margin-top:30px; flex-wrap:wrap; }
+  .btn{
+    display:inline-block;
+    padding:10px 18px;
+    border-radius:var(--radius);
+    border:1px solid var(--board-line);
+    color:var(--chalk);
+    text-decoration:none;
+    font-size:0.92rem;
+    background:rgba(255,255,255,0.02);
+    transition:border-color .15s, background .15s;
+    cursor:pointer;
+    font-family:'IBM Plex Sans', sans-serif;
+  }
+  .btn:hover{ border-color:var(--chalk-teal); background:rgba(127,217,203,0.08); }
+  .btn.primary{
+    border-color:var(--chalk-yellow);
+    color:var(--board-deep);
+    background:var(--chalk-yellow);
+    font-weight:600;
+  }
+  .btn.primary:hover{ background:#f0d27f; }
+  .btn.small{ padding:6px 12px; font-size:0.82rem; }
+
+  /* ---------- callout boxes ---------- */
+  .box{
+    border:1px solid var(--board-line);
+    border-radius:var(--radius);
+    padding:18px 20px;
+    margin:22px 0;
+    background:rgba(255,255,255,0.025);
+  }
+  .box.note{ border-left:3px solid var(--chalk-teal); }
+  .box.warn{ border-left:3px solid var(--chalk-pink); }
+  .box.speak{ border-left:3px solid var(--chalk-yellow); }
+  .box p:last-child{ margin-bottom:0; }
+  .box .box-title{
+    font-weight:600;
+    color:var(--chalk-yellow);
+    margin-bottom:6px;
+    font-size:0.85rem;
+    text-transform:uppercase;
+    letter-spacing:1px;
+  }
+
+  /* ---------- formulas ---------- */
+  .formula{
+    font-family:'IBM Plex Mono', monospace;
+    background:var(--board-deep);
+    border:1px solid var(--board-line);
+    border-radius:var(--radius);
+    padding:16px 20px;
+    margin:18px 0;
+    overflow-x:auto;
+    font-size:1.02rem;
+    color:var(--chalk-yellow);
+  }
+  .formula .lbl{ color:var(--chalk-dim); font-size:0.8rem; display:block; margin-bottom:6px; }
+
+  /* ---------- vector notation (arrow drawn with CSS, not a combining glyph) ---------- */
+  .vec{
+    position:relative;
+    display:inline-block;
+    padding-top:0.5em;
+  }
+  .vec::before{
+    content:"";
+    position:absolute;
+    top:0.08em;
+    left:6%;
+    width:78%;
+    height:0;
+    border-top:0.09em solid currentColor;
+  }
+  .vec::after{
+    content:"";
+    position:absolute;
+    top:-0.02em;
+    right:4%;
+    width:0;
+    height:0;
+    border-left:0.28em solid currentColor;
+    border-top:0.16em solid transparent;
+    border-bottom:0.16em solid transparent;
+  }
+
+  ol.steps{ padding-left:22px; }
+  ol.steps li{ margin-bottom:16px; }
+  ol.steps li b{ color:var(--chalk-yellow); }
+
+  /* ---------- tables ---------- */
+  .table-scroll{ overflow-x:auto; margin:18px 0; }
+  table{
+    border-collapse:collapse;
+    width:100%;
+    min-width:480px;
+    font-size:0.88rem;
+  }
+  th,td{
+    border:1px solid var(--board-line);
+    padding:8px 10px;
+    text-align:center;
+  }
+  th{
+    background:rgba(255,255,255,0.04);
+    color:var(--chalk-teal);
+    font-weight:600;
+    font-family:'IBM Plex Sans', sans-serif;
+    font-size:0.8rem;
+  }
+  td.max-residual{
+    color:var(--chalk-pink);
+    font-weight:600;
+    background:rgba(224,143,166,0.1);
+    border-color:var(--chalk-pink);
+  }
+  td.changed{ color:var(--chalk-yellow); font-weight:600; }
+  .cambia-col{ text-align:left; font-family:'IBM Plex Sans', sans-serif; font-size:0.82rem; color:var(--chalk-dim); }
+
+  /* ---------- calculator ---------- */
+  .calc-panel{
+    border:1px solid var(--board-line);
+    border-radius:10px;
+    padding:26px;
+    background:linear-gradient(180deg, rgba(255,255,255,0.02), transparent);
+  }
+  @media (max-width:600px){ .calc-panel{padding:16px;} }
+
+  .size-picker{ display:flex; gap:8px; margin:14px 0 22px; flex-wrap:wrap; align-items:center; }
+  .size-picker button{
+    width:38px; height:38px;
+    border-radius:50%;
+    border:1px solid var(--board-line);
+    background:transparent;
+    color:var(--chalk);
+    cursor:pointer;
+    font-family:'IBM Plex Mono', monospace;
+  }
+  .size-picker button.active{
+    background:var(--chalk-teal);
+    color:var(--board-deep);
+    border-color:var(--chalk-teal);
+    font-weight:600;
+  }
+  .presets{ display:flex; gap:10px; margin-bottom:22px; flex-wrap:wrap; }
+
+  .eq-row{
+    display:flex;
+    align-items:center;
+    gap:6px;
+    flex-wrap:wrap;
+    margin-bottom:10px;
+    font-size:0.95rem;
+  }
+  .eq-row .sub{ color:var(--chalk-dim); min-width:14px; }
+  .eq-row input[type=number]{
+    width:4.4em;
+    padding:6px 6px;
+    background:var(--board-deep);
+    border:1px solid var(--board-line);
+    border-radius:4px;
+    color:var(--chalk);
+    text-align:right;
+    font-size:0.92rem;
+  }
+  .eq-row input[type=number].bad{ border-color:var(--chalk-pink); }
+  .eq-row .eq-op{ color:var(--chalk-dim); }
+
+  .x0-row{
+    display:flex; gap:14px; flex-wrap:wrap; align-items:center;
+    margin-top:6px;
+  }
+  .x0-row label{ font-size:0.85rem; color:var(--chalk-dim); display:flex; align-items:center; gap:6px; }
+  .x0-row input{
+    width:4.4em; padding:6px; background:var(--board-deep);
+    border:1px solid var(--board-line); border-radius:4px; color:var(--chalk); text-align:right;
+    font-family:'IBM Plex Mono', monospace;
+  }
+
+  .transformed{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:0.86rem;
+    color:var(--chalk-dim);
+    background:var(--board-deep);
+    border:1px solid var(--board-line);
+    border-radius:var(--radius);
+    padding:14px 16px;
+    margin-top:16px;
+    white-space:pre-wrap;
+    line-height:1.9;
+  }
+
+  .diag-warning{ color:var(--chalk-pink); font-size:0.85rem; margin-top:10px; }
+  .diag-note{ color:var(--chalk-dim); font-size:0.82rem; margin-top:10px; }
+
+  .controls{
+    display:flex; gap:10px; flex-wrap:wrap; align-items:center;
+    margin:24px 0 6px;
+  }
+  .controls label{ font-size:0.85rem; color:var(--chalk-dim); display:flex; align-items:center; gap:6px; }
+  .controls input[type=number]{
+    width:4.4em; padding:6px; background:var(--board-deep);
+    border:1px solid var(--board-line); border-radius:4px; color:var(--chalk);
+    font-family:'IBM Plex Mono', monospace;
+  }
+
+  .vector-display{
+    display:flex; gap:22px; flex-wrap:wrap;
+    margin:20px 0; padding:16px 18px;
+    background:var(--board-deep); border:1px solid var(--board-line); border-radius:var(--radius);
+  }
+  .vector-display .vd-item{ font-family:'IBM Plex Mono', monospace; }
+  .vector-display .vd-item .k{ color:var(--chalk-dim); font-size:0.78rem; display:block; }
+  .vector-display .vd-item .v{ color:var(--chalk-yellow); font-size:1.15rem; }
+
+  .status-line{ font-size:0.85rem; color:var(--chalk-teal); min-height:1.4em; margin-top:8px; }
+
+  /* ---------- comparison table specifics ---------- */
+  table.compare th:first-child, table.compare td:first-child{ text-align:left; color:var(--chalk); font-weight:600; }
+  table.compare td.hl{ color:var(--chalk-yellow); }
+
+  footer{
+    max-width:760px;
+    padding:60px 0 0;
+    color:var(--chalk-dim);
+    font-size:0.85rem;
+  }
+  footer a{ color:var(--chalk-dim); }
+
+  ul.src-list{ padding-left:20px; }
+  ul.src-list li{ margin-bottom:10px; }
+</style>
 </head>
 <body>
 
 <div class="shell">
   <nav class="rail" id="rail">
     <div class="brand">Relajación</div>
-    <a href="#introduccion">Introducción</a>
-    <a href="#fundamento">El residuo</a>
-    <a href="#algoritmo">Algoritmo</a>
-    <a href="#calculadora">Calculadora</a>
-    <a href="#ejercicio">Ejercicio resuelto</a>
-    <a href="#comparacion">Vs. Jacobi / G-S</a>
-    <a href="#balance">Ventajas y límites</a>
-    <a href="#fuentes">Fuentes</a>
+    <a href="#introduccion">Introducción y motivación</a>
+    <a href="#base-teorica">Base teórica y teoremas</a>
+    <a href="#metodo">El método</a>
+    <a href="#radio-espectral">Teorema del radio espectral</a>
+    <a href="#bibliografia">Bibliografía</a>
+    <div class="rail-sep"></div>
+    <a href="#calculadora" class="rail-tool">Calculadora</a>
+    <a href="#ejercicio" class="rail-tool">Ejercicio paso a paso</a>
   </nav>
 
   <main>
     <section class="hero">
       <p class="eyebrow">Métodos iterativos · Sistemas de ecuaciones lineales</p>
       <h1>Método de<br>Relajación</h1>
-    
-      <div class="btnrow">
-        <a href="#calculadora" class="btn primary">Probar la calculadora ↓</a>
-        <a href="#algoritmo" class="btn">Ver el algoritmo</a>
-      </div>
-
       <p class="hero-meta">Análisis Numérico — UTN Facultad Regional La Plata<br>Grupo N.º 4 · Alconada, Pedro - Cabrer, Tadeo - De Lorenzo, Dante - Salvagnini, Gino</p>
     </section>
 
     <section id="introduccion">
-      <p class="eyebrow">01 — Introducción</p>
-      <h2>De la solución exacta a la aproximada</h2>
-      <p>Un sistema de ecuaciones lineales A·x = b se puede resolver de dos maneras: con <b>métodos directos</b> (Gauss, Cramer, factorización LU), que llegan al resultado exacto en un número finito de pasos, o con <b>métodos iterativos</b>, que arrancan de un vector cualquiera y lo van corrigiendo hasta acercarse mucho a la solución real.</p>
-      <p>Ya vieron dos métodos iterativos hoy: <b>Jacobi</b> y <b>Gauss-Seidel</b>. Los dos recalculan <em>todas</em> las incógnitas en cada vuelta. El método de <b>Relajación</b> pertenece a la misma familia, pero cambia la estrategia: en cada iteración toca <em>una sola</em> variable — la que más lo necesita.</p>
+      <p class="eyebrow">01 — Introducción y motivación</p>
+      <h2>Por qué hace falta un método más</h2>
+      <p>Imagina tener que resolver a mano un sistema de ecuaciones complejo sin ayuda de una computadora. Para lograrlo, en la década de 1930, Richard V. Southwell desarrolló el Método de Relajación.</p>
+      <p>Esta metodología permite resolver sistemas de ecuaciones lineales (que siempre pueden organizarse visualmente como matrices). Se trata de un método iterativo: en lugar de buscar la respuesta exacta mediante un despeje directo, parte de un resultado inicial aproximado y lo va "mejorando" ciclo tras ciclo para reducir el error.</p>
+      <p>Hoy en día, el método de Southwell está en desuso en el ámbito profesional. Las computadoras actuales operan distinto a la mente humana y prefieren algoritmos más mecánicos y rápidos, como los métodos de Jacobi, Gauss-Seidel o SOR.</p>
+      <p>Entonces, ¿por qué estudiarlo? Porque fue diseñado para la intuición humana, no para las máquinas. Aprender a "relajar" un sistema te enseñará a pensar estratégicamente y te dará una base matemática invaluable para entender a fondo la teoría que veremos a continuación.</p>
+    </section>
+
+    <section id="base-teorica">
+      <p class="eyebrow">02 — Base teórica y teoremas</p>
+      <h2>Base teórica y teoremas</h2>
+      <p>Para aplicar el método de relajación hay una base teórica que tener en cuenta, que concierne a los sistemas de ecuaciones.</p>
+      <p>Primero, debemos tener un sistema de ecuaciones representable como una matriz:</p>
+      <div class="formula">
+        A·<span class="vec">x</span> = <span class="vec">b</span>
+      </div>
+      <p>Donde A·<span class="vec">x</span> es un sistema de ecuaciones con A como los coeficientes, <span class="vec">x</span> el vector incógnita, y <span class="vec">b</span> el vector solución de la ecuación.</p>
+      <p>Para resolver sistemas de ecuaciones existen dos tipos de métodos:</p>
       <div class="box note">
-        <div class="box-title">Idea central</div>
-        <p>Cada ecuación del sistema le "pertenece" a una incógnita. Relajación mide cuánto le falta a cada ecuación para cerrar en cero, y arregla primero la que está más rota.</p>
+        <div class="box-title">Métodos exactos o directos</div>
+        <p>Son algoritmos que resuelven el sistema de ecuaciones con una serie finita de operaciones aritméticas. Conocidos son los métodos de Cramer y Gauss-Jordan.</p>
+      </div>
+      <div class="box note">
+        <div class="box-title">Métodos aproximados o iterativos</div>
+        <p>Es el tipo al que el método de relajación pertenece, y se basa en el cálculo progresivo y aproximado de la solución del sistema de ecuaciones. La idea es que, con cada iteración, el resultado del sistema se "mejora", aproximándose al resultado real. Podemos detenernos con el método cuando consideremos que la solución es suficientemente adecuada; para infinitas sucesiones, el resultado converge al real.</p>
       </div>
     </section>
 
-    <section id="fundamento">
-      <p class="eyebrow">02 — Fundamento</p>
-      <h2>El sistema transformado y los residuos</h2>
-      <p>Para aplicar el método de relajación, el primer paso fundamental es <b>transformar el sistema original</b>. Tomamos cada ecuación i y la normalizamos dividiendo todos sus términos por el coeficiente de la diagonal principal (a<sub>ii</sub>) y multiplicando por −1, de modo que la diagonal principal quede igual a <b>−1</b>:</p>
+    <section id="metodo" class="wide">
+      <p class="eyebrow">03 — El método</p>
+      <h2>El método</h2>
 
-      <div class="formula">
-        <span class="lbl">Ecuación transformada (con diagonal = −1)</span>
-        −x<sub>i</sub>&nbsp;−&nbsp;Σ<sub>j≠i</sub> (a<sub>ij</sub>&nbsp;/&nbsp;a<sub>ii</sub>)·x<sub>j</sub>&nbsp;+&nbsp;(b<sub>i</sub>&nbsp;/&nbsp;a<sub>ii</sub>)&nbsp;=&nbsp;0
-      </div>
-
-      <p>El <b>residuo R<sub>i</sub></b> de la ecuación i se define exactamente como el valor que resulta de evaluar el vector actual dentro de esta expresión transformada:</p>
-
-      <div class="formula">
-        <span class="lbl">Cálculo del Residuo</span>
-        R<sub>i</sub>(x)&nbsp;=&nbsp;−x<sub>i</sub>&nbsp;−&nbsp;Σ<sub>j≠i</sub> (a<sub>ij</sub>&nbsp;/&nbsp;a<sub>ii</sub>)·x<sub>j</sub>&nbsp;+&nbsp;(b<sub>i</sub>&nbsp;/&nbsp;a<sub>ii</sub>)
-      </div>
-
-      <p>Si R<sub>i</sub> da 0, la ecuación ya está satisfecha. Cuanto mayor sea |R<sub>i</sub>|, más lejos estamos del equilibrio y mayor es la necesidad de corregir esa variable.</p>
-    </section>
-
-<section id="algoritmo">
-      <p class="eyebrow">03 — Algoritmo</p>
-      <h2>El procedimiento, paso a paso</h2>
       <ol class="steps">
-        <li><b>Condición de partida:</b> ningún a<sub>ii</sub> puede ser cero (si pasa, se reordenan ecuaciones e incógnitas). Si la matriz es diagonalmente dominante, es más probable que el método converja.</li>
-        <li><b>Calcular todos los residuos</b> R<sub>1</sub>, R<sub>2</sub>, …, R<sub>n</sub> con el vector actual.</li>
-        <li><b>Elegir el mayor en valor absoluto:</b> i* = el índice donde |R<sub>i</sub>| es más grande.</li>
-        <li><b>Corregir sólo esa variable:</b> x<sub>i*</sub> ← x<sub>i*</sub> + R<sub>i*</sub>. Las demás quedan exactamente igual.</li>
-        <li><b>Repetir</b> desde el paso 2 con el vector actualizado, hasta cumplir el criterio de parada.</li>
+        <li><b>Paso 1.</b> Dado nuestro sistema de ecuaciones A·<span class="vec">x</span> = <span class="vec">b</span>, despejamos el término <span class="vec">b</span> igualando a cero, tal que resulte en A·<span class="vec">x</span> − <span class="vec">b</span> = 0. Llamaremos al término de la izquierda <b>residuo</b>, y lo denotaremos matemáticamente como <span class="vec">R</span>. Nos quedan varios residuos:
+          <div class="formula">
+            a<sub>11</sub>x<sub>1</sub> + a<sub>12</sub>x<sub>2</sub> + ⋯ − b<sub>1</sub> = R<sub>1</sub><br>
+            a<sub>21</sub>x<sub>1</sub> + a<sub>22</sub>x<sub>2</sub> + ⋯ − b<sub>2</sub> = R<sub>2</sub><br>
+            a<sub>31</sub>x<sub>1</sub> + a<sub>32</sub>x<sub>2</sub> + ⋯ − b<sub>3</sub> = R<sub>3</sub> …
+          </div>
+        </li>
+        <li><b>Paso 2.</b> Dividimos, del lado izquierdo del sistema, cada fila i por el valor −a<sub>ii</sub> del sistema. Esto nos garantiza que la diagonal principal del sistema sea igual a −1, y nos será evidente su ayuda a la hora de iterar con el método. Nos queda:
+          <div class="formula">
+            (a<sub>11</sub>x<sub>1</sub> + a<sub>12</sub>x<sub>2</sub> + ⋯ − b<sub>1</sub>) / a<sub>11</sub> = R<sub>1</sub><br>
+            (a<sub>21</sub>x<sub>1</sub> + a<sub>22</sub>x<sub>2</sub> + ⋯ − b<sub>2</sub>) / a<sub>22</sub> = R<sub>2</sub><br>
+            (a<sub>31</sub>x<sub>1</sub> + a<sub>32</sub>x<sub>2</sub> + ⋯ − b<sub>3</sub>) / a<sub>33</sub> = R<sub>3</sub> …
+          </div>
+        </li>
+        <li><b>Paso 3.</b> Igualamos en el sistema todas las incógnitas a cero (x<sub>1</sub> = x<sub>2</sub> = ⋯ = x<sub>n</sub> = 0), lo que resultará en distintos valores para nuestros n residuos. Tomamos la primera fila del sistema y anotamos el valor del residuo de haber igualado a cero; digamos que resultó en R<sub>1</sub> inicial (también tendremos R<sub>2</sub> inicial, R<sub>3</sub> inicial…). Luego generamos un "incremento" de 1 a la variable x<sub>1</sub> que habíamos igualado a cero (llamemos a ese incremento Δx<sub>1</sub>). Nos daremos cuenta de que ese R<sub>1</sub> inicial ha cambiado (y también los demás R<sub>n</sub> inicial) a otro valor distinto, digamos R<sub>1</sub> final. Lo que nos interesa saber es cuánto cambió el residuo R debido a ese incremento, o sea el valor final menos el inicial. Anotamos entonces cuánto cambió el residuo R<sub>1</sub> dado ese incremento Δx<sub>1</sub>, pero también cuánto cambiaron los demás residuos, y lo ponemos en una tabla.</li>
+        <li><b>Paso 4.</b> Lo que obtuvimos en el paso 3 nos dice lo siguiente: dado que inicialmente supuse todos los valores de las incógnitas iguales a cero, sé que al aumentar en uno una incógnita que desee (aumentar por alguna Δx<sub>n</sub>), voy a tener como resultado un aumento en cada residuo correspondiente, respectivamente, a ΔR<sub>1</sub>, ΔR<sub>2</sub>, …
+          <p>Esta información la voy a usar en este paso: tomando arbitrariamente el residuo más grande o más "estresado", procedo a "relajarlo" cambiando una de estas x<sub>n</sub> variables para que sea igual a cero.</p>
+          <p>El algoritmo es el siguiente: tomo un residuo R<sub>i</sub> que es el más "estresado". Luego miro en la tabla, para dicho R<sub>i</sub>, alguno de los Δx<sub>n</sub>. Lo que voy a saber es que, si por ejemplo mi R<sub>i</sub> es 5 y un Δx<sub>n</sub> hace que R<sub>i</sub> se reduzca en 1, entonces voy a incrementar cinco veces por ese valor Δx<sub>n</sub> para que mi residuo R<sub>i</sub> se reduzca a 0.</p>
+          <div class="table-scroll">
+            <table>
+              <thead>
+                <tr><th></th><th>ΔR<sub>1</sub></th><th>ΔR<sub>2</sub></th><th>ΔR<sub>3</sub></th><th>...</th><th>ΔR<sub>i</sub></th><th>...</th><th>ΔR<sub>n</sub></th></tr>
+              </thead>
+              <tbody>
+                <tr><td>x<sub>1</sub> = ⋯ = x<sub>i</sub> = ⋯ = x<sub>n</sub> = 0</td><td>54</td><td>35</td><td>22</td><td>...</td><td class="max-residual">5</td><td>...</td><td>2</td></tr>
+                <tr><td>x<sub>1</sub> = ⋯ = x<sub>n</sub> = 0, x<sub>i</sub> = 5</td><td>50</td><td>39</td><td>28</td><td>...</td><td>0</td><td>...</td><td>7</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </li>
+        <li><b>Paso 5.</b> Repetir el paso 4: encontrar el siguiente residuo "más estresado" (el de mayor valor) y volver a buscar un incremento que haga que dicho residuo se haga 0.</li>
+        <li><b>Paso 6.</b> Eventualmente, todos los residuos tendrán un valor muy cercano a cero, o en el mejor de los casos, igual a cero. Sea cual sea el caso, esto habrá resultado de haber probado varios n valores para las x<sub>n</sub> incógnitas. Dichos valores serán el resultado del sistema de ecuaciones.</li>
       </ol>
+    </section>
 
-      <!-- AGREGADO: Explicación de Criterios de Parada -->
-      <div class="box note">
-        <div class="box-title">¿Cuándo paramos de iterar? (Criterios de parada)</div>
-        <p>En la práctica real no conocemos la solución exacta para compararla. Por eso, el método debe darse cuenta por sí solo cuándo detenerse usando una "tolerancia" (ε). Hay dos formas principales de hacerlo:</p>
-        <ul style="margin-bottom: 0;">
-          <li><b>Por el residuo (Usado en esta calculadora):</b> Se detiene cuando el mayor residuo en valor absoluto es menor a la tolerancia (ej: |R<sub>max</sub>| < 10⁻⁶). Si el residuo es casi cero, significa que las ecuaciones ya "cierran".</li>
-          <li><b>Por diferencia entre iteraciones:</b> Se detiene cuando la distancia entre el vector nuevo y el anterior es menor a la tolerancia ( ||x<sup>(k)</sup> - x<sup>(k-1)</sup>|| < ε ). O sea, cuando iterar ya casi no cambia los valores.</li>
-        </ul>
+    <section id="radio-espectral">
+      <p class="eyebrow">04 — Teorema del radio espectral</p>
+      <h2>Teorema del radio espectral</h2>
+      <p>El método iterativo, sea cual sea, siempre se puede pensar como una máquina matemática que transforma nuestro sistema original (A·<span class="vec">x</span> = <span class="vec">b</span>) en un ciclo o bucle con la siguiente forma:</p>
+      <div class="formula">
+        <span class="vec">x</span><sup>(k+1)</sup> = M·<span class="vec">x</span><sup>(k)</sup> + <span class="vec">c</span>
       </div>
+      <p>Teniendo en cuenta que <span class="vec">x</span> representa la solución del sistema de ecuaciones, <span class="vec">x</span><sup>(n)</sup> es sencillamente la enésima iteración resultante de haber aplicado un método iterativo, o la enésima aproximación. M es una matriz de iteración y <span class="vec">c</span> una constante, que salen de trabajar el sistema original.</p>
+      <p>Lo que nos interesa para asegurar que el método funciona es que el error de cada iteración (la diferencia entre nuestra aproximación actual y el valor real) vaya desapareciendo. Está demostrado que el error de la siguiente iteración es igual al error actual multiplicado por esa matriz M:</p>
+      <div class="formula">
+        <span class="vec">e</span><sup>(k+1)</sup> = M·<span class="vec">e</span><sup>(k)</sup>
+      </div>
+      <p>Aquí es donde entra el concepto de <b>Radio Espectral</b>. En álgebra lineal, el radio espectral de una matriz es simplemente su autovalor más grande en valor absoluto. De forma sencilla, lo podemos pensar como el "factor de estiramiento máximo" que aplica esa matriz.</p>
+      <div class="box note">
+        <div class="box-title">El teorema</div>
+        <p>El esquema iterativo es convergente si y sólo si se cumple la condición necesaria y suficiente de que el radio espectral de la matriz M es estrictamente menor a 1.</p>
+      </div>
+      <p>En otras palabras, si el radio espectral es menor a 1 (por ejemplo, 0.8), significa que en cada iteración el error se multiplica por una fracción, encogiéndose un 20% cada vez, hasta eventualmente desaparecer (puesto que el error, para una gran cantidad de iteraciones, terminará encogiendo muy cercanamente al 0%). Si fuera mayor a 1, el error crecería con cada iteración y el método divergiría.</p>
+    </section>
+
+    <section id="bibliografia">
+      <p class="eyebrow">05 — Bibliografía</p>
+      <h2>Bibliografía</h2>
+      <ul class="src-list">
+        <li>Allen, D. N. de G. — <em>Relaxation Methods</em>. McGraw-Hill, 1954.</li>
+      </ul>
     </section>
 
     <section id="calculadora" class="wide">
-      <p class="eyebrow">04 — Herramienta</p>
-      <h2>Calculadora de Relajación</h2>
-      <p>Elegí el tamaño del sistema, cargá los coeficientes y el vector inicial, y corré las iteraciones.</p>
-
-      <div class="calc-panel">
-        <div class="presets">
-          <button class="btn small" id="preset-2x2" type="button">Cargar ejemplo 2×2</button>
-          <button class="btn small" id="preset-3x3" type="button">Cargar ejemplo del apunte (3×3)</button>
-          <button class="btn small" id="preset-diverge" type="button">Cargar ejemplo divergente</button>
-        </div>
-
-        <p class="dim" style="font-size:0.82rem; margin-top:-4px;">Esta calculadora trabaja con el sistema transformado internamente.</p>
-
-        <div class="size-picker" id="size-picker" role="group" aria-label="Tamaño del sistema"></div>
-
-        <div id="matrix-form"></div>
-        <div id="diag-status"></div>
-
-        <!-- AGREGADO: Desplegable con el resultado exacto -->
-        <details class="step-details" style="margin-top: 15px; background: rgba(13,110,253,0.03);">
-          <summary>🎯 Ver resultado exacto del sistema (para comparar)</summary>
-          <div class="step-content" id="exact-solution-content">
-            <!-- JS va a inyectar el resultado exacto acá -->
+      <details class="calc-details">
+        <summary>
+          <span>Calculadora de Relajación<span class="sub">Herramienta interactiva — desplegar para usar en vivo</span></span>
+          <span class="chevron">▸</span>
+        </summary>
+        <div class="calc-panel">
+          <div class="presets">
+            <button class="btn small" id="preset-2x2" type="button">Cargar ejemplo 2×2</button>
+            <button class="btn small" id="preset-3x3" type="button">Cargar ejemplo del apunte (3×3)</button>
+            <button class="btn small" id="preset-diverge" type="button">Cargar ejemplo divergente</button>
           </div>
-          <p class="dim" style="font-size: 0.8rem; margin-top: 8px;">* Calculado internamente mediante eliminación gaussiana directa, independientemente de las iteraciones.</p>
-        </details>
 
-        <h3 style="margin-top:26px; font-size:1rem;">Sistema transformado (a<sub>ii</sub> = −1)</h3>
-        <div class="transformed" id="transformed-view"></div>
+          <div class="size-picker" id="size-picker" role="group" aria-label="Tamaño del sistema"></div>
 
-        <div class="controls">
-          <label>Iteraciones a correr
-            <input type="number" id="iter-count" value="6" min="1" max="60">
-          </label>
-          <label>
-            <input type="checkbox" id="auto-stop" checked style="width:auto;">
-            Detener si converge (tolerancia 1e-6)
-          </label>
-          <button class="btn primary small" id="btn-run" type="button">Iterar</button>
-          <button class="btn small" id="btn-step" type="button">Un paso</button>
-          <button class="btn small" id="btn-reset" type="button">Reiniciar</button>
-        </div>
-        <div class="status-line" id="status-line"></div>
+          <div id="matrix-form"></div>
 
-        <div class="vector-display" id="vector-display"></div>
+          <div id="diag-status"></div>
 
-        <div class="table-scroll">
-          <table id="history-table">
-            <thead><tr id="history-head"></tr></thead>
-            <tbody id="history-body"></tbody>
-          </table>
-        </div>
-      </div>
-    </section>
-    
-    <section id="ejercicio">
-      <p class="eyebrow">05 — Ejercicio resuelto</p>
-      <h2>El sistema del apunte, a mano</h2>
-      <p>Sistema de partida:</p>
-      <div class="formula">
-        10x₁&nbsp;+&nbsp;3x₂&nbsp;+&nbsp;x₃&nbsp;=&nbsp;7<br>
-        2x₁&nbsp;+&nbsp;15x₂&nbsp;+&nbsp;4x₃&nbsp;=&nbsp;−16<br>
-        x₁&nbsp;+&nbsp;2x₂&nbsp;+&nbsp;20x₃&nbsp;=&nbsp;57
-      </div>
-      <p>Vector inicial: x⁽⁰⁾ = (0.8, −1.7, 2.5). Solución exacta del sistema (para comparar): (1, −2, 3).</p>
+          <h3 style="margin-top:26px; font-size:1rem;">Sistema transformado (a<sub>ii</sub> = −1)</h3>
+          <div class="transformed" id="transformed-view"></div>
 
-      <div class="table-scroll">
-        <table>
-          <thead>
-            <tr><th>Iteración k</th><th>x₁</th><th>R₁</th><th>x₂</th><th>R₂</th><th>x₃</th><th>R₃</th><th class="cambia-col">Cambia</th></tr>
-          </thead>
-          <tbody>
-            <tr><td>0</td><td>0.8</td><td>0.16</td><td>−1.7</td><td>−0.1374</td><td>2.5</td><td class="max-residual">0.48</td><td class="cambia-col">x₃ = 2.5 + 0.48 = 2.98</td></tr>
-            <tr><td>1</td><td>0.8</td><td>0.112</td><td>−1.7</td><td class="max-residual">−0.26508</td><td>2.98</td><td>0</td><td class="cambia-col">x₂ = −1.7 − 0.26508 = −1.96508</td></tr>
-            <tr><td>2</td><td>0.8</td><td class="max-residual">0.1915</td><td>−1.96508</td><td>0</td><td>2.98</td><td>0.0265</td><td class="cambia-col">x₁ = 0.8 + 0.1915 = 0.9915</td></tr>
-            <tr><td>3</td><td>0.9915</td><td>0</td><td>−1.96508</td><td class="max-residual">−0.02546</td><td>2.98</td><td>0.01693</td><td class="cambia-col">x₂ = −1.96508 − 0.02546 = −1.99054</td></tr>
-            <tr><td>Solución (k=4)</td><td colspan="6">x = (0.9915, −1.99054, 2.98)</td><td class="cambia-col">—</td></tr>
-          </tbody>
-        </table>
-      </div>
+          <div class="controls">
+            <label>Iteraciones a correr
+              <input type="number" id="iter-count" value="6" min="1" max="60">
+            </label>
+            <label>
+              <input type="checkbox" id="auto-stop" checked style="width:auto;">
+              Detener si converge (tolerancia 1e-6)
+            </label>
+            <button class="btn primary small" id="btn-run" type="button">Iterar</button>
+            <button class="btn small" id="btn-step" type="button">Un paso</button>
+            <button class="btn small" id="btn-reset" type="button">Reiniciar</button>
+          </div>
+          <div class="status-line" id="status-line"></div>
 
-      <details class="step-details">
-        <summary>🔎 Ver desarrollo detallado de la primera iteración</summary>
-        <div class="step-content">
-          <h4>Primera iteración, mostrando cada cuenta</h4>
-          <p>Vector inicial (dato del problema): <b>x₁=0.8, x₂=-1.7, x₃=2.5</b></p>
-          <p>Reemplazo esos tres valores en las tres fórmulas de residuo (del sistema transformado):</p>
-          
-          <p><b>R₁ = -(0.8) - 0.3×(-1.7) - 0.1×(2.5) + 0.7</b></p>
-          <ul>
-            <li>-(0.8) = -0.8</li>
-            <li>-0.3 × (-1.7) = +0.51</li>
-            <li>-0.1 × (2.5) = -0.25</li>
-            <li>+ 0.7</li>
-            <li><i>Sumo todo:</i> -0.8 + 0.51 - 0.25 + 0.7 = <b>0.16</b></li>
-          </ul>
+          <div class="vector-display" id="vector-display"></div>
 
-          <p><b>R₂ = -0.1333×(0.8) - (-1.7) - 0.2667×(2.5) - 1.0667</b></p>
-          <ul>
-            <li>-0.1333 × 0.8 = -0.1067</li>
-            <li>-(-1.7) = +1.7</li>
-            <li>-0.2667 × 2.5 = -0.6667</li>
-            <li>-1.0667</li>
-            <li><i>Sumo:</i> -0.1067 + 1.7 - 0.6667 - 1.0667 = <b>-0.1374</b></li>
-          </ul>
-
-          <p><b>R₃ = -0.05×(0.8) - 0.1×(-1.7) - (2.5) + 2.85</b></p>
-          <ul>
-            <li>-0.05 × 0.8 = -0.04</li>
-            <li>-0.1 × (-1.7) = +0.17</li>
-            <li>-(2.5) = -2.5</li>
-            <li>+2.85</li>
-            <li><i>Sumo:</i> -0.04 + 0.17 - 2.5 + 2.85 = <b>0.48</b></li>
-          </ul>
-
-          <h4>¿Por qué elegimos el mayor en valor absoluto?</h4>
-          <p>Ahora tenemos tres números: |R₁|=0.16, |R₂|=0.1374, |R₃|=0.48. El más grande es R₃. La lógica es: la ecuación 3 es la que está "más rota" en este momento, la que más lejos está de cumplirse. Tiene sentido priorizarla — es donde más impacto tiene arreglar algo, y además es la que "controla" x₃.</p>
-
-          <h4>La corrección — y por qué funciona</h4>
-          <p>La fórmula es: <code>x_i nuevo = x_i viejo + R_i</code><br>
-          Para x₃: <b>x₃_nuevo = 2.5 + 0.48 = 2.98</b></p>
-          <p>¿Por qué sumarle justo el residuo, ni más ni menos? Porque si volvés a mirar la ecuación de R₃:</p>
-          <div class="formula" style="font-size: 0.9rem; padding: 10px;">R₃ = -0.05x₁ - 0.1x₂ - x₃ + 2.85</div>
-          <p>x₃ aparece con coeficiente -1. Si a x₃ le sumás una cantidad δ, R₃ cambia en exactamente -δ (porque el coeficiente es -1). Entonces, si quiero que el nuevo R₃ dé cero:</p>
-          <ul>
-            <li>R₃_nuevo = R₃_viejo + (-1)×δ = 0</li>
-            <li>0.48 - δ = 0</li>
-            <li><b>δ = 0.48</b></li>
-          </ul>
-          <p>O sea: el incremento que hay que sumarle a la variable para que su ecuación cierre exacto es justo el residuo. ¡Sale directo de que el coeficiente de la diagonal vale -1 en el sistema transformado!</p>
-          <p>Nuevo vector: <b>x₁=0.8</b> (no se tocó), <b>x₂=-1.7</b> (no se tocó), <b>x₃=2.98</b></p>
+          <div class="table-scroll">
+            <table id="history-table">
+              <thead><tr id="history-head"></tr></thead>
+              <tbody id="history-body"></tbody>
+            </table>
+          </div>
         </div>
       </details>
     </section>
 
-    <section id="comparacion">
-      <p class="eyebrow">06 — Comparación</p>
-      <h2>Relajación frente a Jacobi y Gauss-Seidel</h2>
-      <div class="table-scroll">
-        <table class="compare">
-          <thead>
-            <tr><th></th><th>Jacobi</th><th>Gauss-Seidel</th><th>Relajación</th></tr>
-          </thead>
-          <tbody>
-            <tr><td>Qué actualiza en cada vuelta</td><td>Todas las variables</td><td>Todas las variables</td><td class="hl">Una sola variable</td></tr>
-            <tr><td>Valores que usa para actualizar</td><td>Sólo de la iteración anterior</td><td>Mezcla: nuevos + anteriores</td><td>El vector actual completo</td></tr>
-            <tr><td>Criterio para elegir qué corregir</td><td>No aplica (corrige todo)</td><td>No aplica (corrige todo)</td><td class="hl">El mayor residuo en valor absoluto</td></tr>
-            <tr><td>Condición práctica de convergencia</td><td>Diagonal dominante (suficiente, no necesaria)</td><td>Diagonal dominante (suficiente, no necesaria)</td><td>a<sub>ii</sub> ≠ 0; diagonal dominante ayuda</td></tr>
-          </tbody>
-        </table>
-      </div>
-    </section>
+    <section id="ejercicio" class="wide">
+      <details class="calc-details">
+        <summary>
+          <span>Ejercicio paso a paso<span class="sub">Un sistema 3×3 resuelto a mano, iteración por iteración</span></span>
+          <span class="chevron">▸</span>
+        </summary>
+        <div class="calc-panel">
+          <p><b>Sistema de partida:</b></p>
+          <div class="formula">
+            10x<sub>1</sub> + 3x<sub>2</sub> + x<sub>3</sub> = 7<br>
+            2x<sub>1</sub> + 15x<sub>2</sub> + 4x<sub>3</sub> = −16<br>
+            x<sub>1</sub> + 2x<sub>2</sub> + 20x<sub>3</sub> = 57
+          </div>
 
-    <section id="balance">
-      <p class="eyebrow">07 — Balance</p>
-      <h2>Ventajas y limitaciones</h2>
-      <h3>Ventajas</h3>
-      <p>Simple de aplicar a mano en sistemas chicos. Cada paso ataca directamente el mayor error del momento, lo que suele acelerar la convergencia frente a corregir todo por igual. Fácil de seguir con una tabla, sin álgebra matricial pesada.</p>
-      <h3>Limitaciones</h3>
-      <p>Hay que recalcular todos los residuos en cada vuelta sólo para saber cuál es el mayor, lo que implica más comparaciones que Jacobi o Gauss-Seidel. Para sistemas grandes resueltos a mano se vuelve tedioso. Al depender de "cuál es el peor ahora", es menos directo de paralelizar que Jacobi.</p>
-    </section>
+          <ol class="steps">
+            <li><b>Vector inicial.</b> Arrancamos con <span class="vec">x</span><sup>(0)</sup> = (0.8, −1.7, 2.5), un valor cualquiera cercano a lo que intuimos que puede ser la solución.</li>
+            <li><b>Calcular los tres residuos</b> con la fórmula R<sub>i</sub> = (b<sub>i</sub> − Σ<sub>j≠i</sub> a<sub>ij</sub>x<sub>j</sub>) / a<sub>ii</sub> − x<sub>i</sub>, usando los valores actuales de x<sub>1</sub>, x<sub>2</sub>, x<sub>3</sub>.</li>
+            <li><b>Elegir el residuo más grande en valor absoluto</b> y corregir sólo esa variable, sumándole su residuo.</li>
+            <li><b>Repetir</b> hasta que los tres residuos sean lo bastante chicos.</li>
+          </ol>
 
-    <section id="fuentes">
-      <p class="eyebrow">08 — Fuentes</p>
-      <h2>Material consultado</h2>
-      <ul class="src-list">
-        <li>Amiconi, D. F. — <em>Teoría: Resolución de Sistemas de Ecuaciones Lineales</em>, Cátedra de Cálculo Numérico, UTN Facultad Regional La Plata.</li>
-        <li>Amiconi, D. F. — <em>Ejercicio resuelto: Método de Relajación</em>, Cátedras de Modelos Numéricos, Análisis Numérico y Cálculo Avanzado, UTN FRLP.</li>
-        <li>Burden, R. L. &amp; Faires, J. D. — <em>Numerical Analysis</em>, capítulo sobre métodos iterativos para sistemas lineales (bibliografía general de referencia).</li>
-      </ul>
+          <p>Así queda la tabla completa, paso a paso:</p>
+          <div class="table-scroll">
+            <table>
+              <thead>
+                <tr><th>Iteración k</th><th>x<sub>1</sub></th><th>R<sub>1</sub></th><th>x<sub>2</sub></th><th>R<sub>2</sub></th><th>x<sub>3</sub></th><th>R<sub>3</sub></th><th class="cambia-col">Cambia</th></tr>
+              </thead>
+              <tbody>
+                <tr><td>0</td><td>0.8</td><td>0.16</td><td>−1.7</td><td>−0.1374</td><td>2.5</td><td class="max-residual">0.48</td><td class="cambia-col">x<sub>3</sub> = 2.5 + 0.48 = 2.98</td></tr>
+                <tr><td>1</td><td>0.8</td><td>0.112</td><td>−1.7</td><td class="max-residual">−0.26508</td><td>2.98</td><td>0</td><td class="cambia-col">x<sub>2</sub> = −1.7 − 0.26508 = −1.96508</td></tr>
+                <tr><td>2</td><td>0.8</td><td class="max-residual">0.1915</td><td>−1.96508</td><td>0</td><td>2.98</td><td>0.0265</td><td class="cambia-col">x<sub>1</sub> = 0.8 + 0.1915 = 0.9915</td></tr>
+                <tr><td>3</td><td>0.9915</td><td>0</td><td>−1.96508</td><td class="max-residual">−0.02546</td><td>2.98</td><td>0.01693</td><td class="cambia-col">x<sub>2</sub> = −1.96508 − 0.02546 = −1.99054</td></tr>
+                <tr><td>Solución (k=4)</td><td colspan="6"><span class="vec">x</span> = (0.9915, −1.99054, 2.98)</td><td class="cambia-col">—</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <p class="dim">En 4 iteraciones el vector ya quedó muy cerca de la solución exacta (1, −2, 3). Podés cargar este mismo sistema en la calculadora con el botón "Cargar ejemplo del apunte (3×3)".</p>
+        </div>
+      </details>
     </section>
 
     <footer>
@@ -269,8 +681,371 @@
   </main>
 </div>
 
-<div id="custom-tooltip" class="tooltip-box"></div>
+<script>
+(function(){
+  "use strict";
 
-<script src="script.js"></script>
+  // ---------------- state ----------------
+  var state = {
+    n: 3,
+    A: [],
+    b: [],
+    x0: [],
+    x: [],
+    history: []
+  };
+
+  var EXAMPLES = {
+    "2x2": {
+      n:2,
+      A:[[4,1],[1,3]],
+      b:[6,7],
+      x0:[0,0]
+    },
+    "3x3": {
+      n:3,
+      A:[[10,3,1],[2,15,4],[1,2,20]],
+      b:[7,-16,57],
+      x0:[0.8,-1.7,2.5]
+    },
+    "diverge": {
+      n:2,
+      A:[[1,3],[2,1]],
+      b:[5,3],
+      x0:[0,0]
+    }
+  };
+
+  function fmt(num){
+    if (!isFinite(num)) return '—';
+    var r = Math.round(num * 100000) / 100000;
+    if (Object.is(r, -0)) r = 0;
+    return r.toString();
+  }
+
+  // ---------------- size picker ----------------
+  var sizePicker = document.getElementById('size-picker');
+  [2,3,4,5].forEach(function(sz){
+    var b = document.createElement('button');
+    b.type = 'button';
+    b.textContent = sz;
+    b.setAttribute('aria-label', 'Sistema de ' + sz + 'x' + sz);
+    b.addEventListener('click', function(){ setSize(sz); });
+    b.dataset.size = sz;
+    sizePicker.appendChild(b);
+  });
+
+  function updateSizeButtons(){
+    Array.prototype.forEach.call(sizePicker.children, function(btn){
+      btn.classList.toggle('active', parseInt(btn.dataset.size,10) === state.n);
+    });
+  }
+
+  function setSize(n, preserve){
+    state.n = n;
+    if (!preserve){
+      var newA = [], newB = [], newX0 = [];
+      for (var i=0;i<n;i++){
+        var row = [];
+        for (var j=0;j<n;j++){
+          row.push(i===j ? (state.A[i] && state.A[i][j] !== undefined ? state.A[i][j] : 4) : (state.A[i] && state.A[i][j] !== undefined ? state.A[i][j] : 1));
+        }
+        newA.push(row);
+        newB.push(state.b[i] !== undefined ? state.b[i] : 1);
+        newX0.push(state.x0[i] !== undefined ? state.x0[i] : 0);
+      }
+      state.A = newA; state.b = newB; state.x0 = newX0;
+    }
+    buildForm();
+    resetRun();
+    updateSizeButtons();
+  }
+
+  function loadExample(key, scroll){
+    var ex = EXAMPLES[key];
+    state.n = ex.n;
+    state.A = ex.A.map(function(r){ return r.slice(); });
+    state.b = ex.b.slice();
+    state.x0 = ex.x0.slice();
+    buildForm();
+    resetRun();
+    updateSizeButtons();
+    if (scroll !== false){
+      var details = document.querySelector('#calculadora details.calc-details');
+      if (details) details.open = true;
+      document.getElementById('calculadora').scrollIntoView({behavior:'smooth', block:'start'});
+    }
+  }
+  document.getElementById('preset-2x2').addEventListener('click', function(){ loadExample('2x2'); });
+  document.getElementById('preset-3x3').addEventListener('click', function(){ loadExample('3x3'); });
+  document.getElementById('preset-diverge').addEventListener('click', function(){ loadExample('diverge'); });
+  // ---------------- build the input form ----------------
+  var formEl = document.getElementById('matrix-form');
+
+  function buildForm(){
+    formEl.innerHTML = '';
+    var n = state.n;
+
+    for (var i=0;i<n;i++){
+      var row = document.createElement('div');
+      row.className = 'eq-row';
+
+      for (var j=0;j<n;j++){
+        if (j>0){
+          var plus = document.createElement('span');
+          plus.className = 'eq-op';
+          plus.textContent = '+';
+          row.appendChild(plus);
+        }
+        var inp = document.createElement('input');
+        inp.type = 'number';
+        inp.step = 'any';
+        inp.value = state.A[i][j];
+        inp.dataset.i = i; inp.dataset.j = j; inp.dataset.role = 'a';
+        inp.setAttribute('aria-label', 'coeficiente a' + (i+1) + (j+1));
+        inp.addEventListener('input', onCoeffChange);
+        row.appendChild(inp);
+
+        var sub = document.createElement('span');
+        sub.className = 'sub';
+        sub.innerHTML = 'x<sub>' + (j+1) + '</sub>';
+        row.appendChild(sub);
+      }
+
+      var eq = document.createElement('span');
+      eq.className = 'eq-op';
+      eq.textContent = '=';
+      row.appendChild(eq);
+
+      var bInp = document.createElement('input');
+      bInp.type = 'number';
+      bInp.step = 'any';
+      bInp.value = state.b[i];
+      bInp.dataset.i = i; bInp.dataset.role = 'b';
+      bInp.setAttribute('aria-label', 'término independiente b' + (i+1));
+      bInp.addEventListener('input', onCoeffChange);
+      row.appendChild(bInp);
+
+      formEl.appendChild(row);
+    }
+
+    var x0Row = document.createElement('div');
+    x0Row.className = 'x0-row';
+    for (var k=0;k<n;k++){
+      var lab = document.createElement('label');
+      lab.innerHTML = 'x<sub>' + (k+1) + '</sub><sup>(0)</sup>';
+      var x0Inp = document.createElement('input');
+      x0Inp.type = 'number';
+      x0Inp.step = 'any';
+      x0Inp.value = state.x0[k];
+      x0Inp.dataset.i = k; x0Inp.dataset.role = 'x0';
+      x0Inp.addEventListener('input', onCoeffChange);
+      lab.appendChild(x0Inp);
+      x0Row.appendChild(lab);
+    }
+    formEl.appendChild(x0Row);
+
+    onCoeffChange();
+  }
+
+  function onCoeffChange(e){
+    if (e && e.target){
+      var t = e.target;
+      var i = parseInt(t.dataset.i, 10);
+      var val = parseFloat(t.value);
+      if (isNaN(val)) val = 0;
+      if (t.dataset.role === 'a'){
+        var j = parseInt(t.dataset.j, 10);
+        state.A[i][j] = val;
+      } else if (t.dataset.role === 'b'){
+        state.b[i] = val;
+      } else if (t.dataset.role === 'x0'){
+        state.x0[i] = val;
+      }
+    }
+    checkDiagonal();
+    renderTransformed();
+    resetRun();
+  }
+
+  function checkDiagonal(){
+    var n = state.n;
+    var statusEl = document.getElementById('diag-status');
+    var zeroDiag = false;
+    var dominant = true;
+    for (var i=0;i<n;i++){
+      if (state.A[i][i] === 0) zeroDiag = true;
+      var sum = 0;
+      for (var j=0;j<n;j++){ if (j!==i) sum += Math.abs(state.A[i][j]); }
+      if (Math.abs(state.A[i][i]) < sum) dominant = false;
+    }
+    var html = '';
+    if (zeroDiag){
+      html = '<p class="diag-warning">⚠ Hay un 0 en la diagonal principal. Reordená ecuaciones/incógnitas antes de iterar — no se puede dividir por a<sub>ii</sub> = 0.</p>';
+    } else if (!dominant){
+      html = '<p class="diag-note">Nota: esta matriz no es diagonalmente dominante. Puede converger igual, pero no está garantizado.</p>';
+    }
+    statusEl.innerHTML = html;
+    formEl.querySelectorAll('input[data-role="a"]').forEach(function(inp){
+      var i = parseInt(inp.dataset.i,10), j = parseInt(inp.dataset.j,10);
+      inp.classList.toggle('bad', i===j && state.A[i][j] === 0);
+    });
+    return !zeroDiag;
+  }
+
+  function renderTransformed(){
+    var n = state.n, A = state.A, b = state.b;
+    var out = document.getElementById('transformed-view');
+    var lines = [];
+    for (var i=0;i<n;i++){
+      if (A[i][i] === 0){ lines.push('ecuación ' + (i+1) + ': no se puede normalizar (a' + (i+1) + (i+1) + ' = 0)'); continue; }
+      var parts = ['−x' + sub(i+1)];
+      for (var j=0;j<n;j++){
+        if (j===i) continue;
+        var coef = -A[i][j] / A[i][i];
+        if (coef === 0) continue;
+        var sign = coef >= 0 ? ' + ' : ' − ';
+        parts.push(sign + fmt(Math.abs(coef)) + 'x' + sub(j+1));
+      }
+      var c = b[i] / A[i][i];
+      var csign = c >= 0 ? ' + ' : ' − ';
+      parts.push(csign + fmt(Math.abs(c)));
+      parts.push(' = 0');
+      lines.push(parts.join(''));
+    }
+    out.textContent = lines.join('\n');
+  }
+
+  function sub(num){
+    var map = {0:'\u2080',1:'\u2081',2:'\u2082',3:'\u2083',4:'\u2084',5:'\u2085',6:'\u2086',7:'\u2087',8:'\u2088',9:'\u2089'};
+    return String(num).split('').map(function(d){ return map[d]; }).join('');
+  }
+
+  // ---------------- relaxation engine ----------------
+  function computeResiduals(A,b,x,n){
+    var R = new Array(n);
+    for (var i=0;i<n;i++){
+      var s = 0;
+      for (var j=0;j<n;j++){ if (j!==i) s += A[i][j]*x[j]; }
+      var proposed = (b[i]-s)/A[i][i];
+      R[i] = proposed - x[i];
+    }
+    return R;
+  }
+
+  function stepOnce(){
+    var n = state.n;
+    var R = computeResiduals(state.A, state.b, state.x, n);
+    var maxI = 0;
+    for (var i=1;i<n;i++){ if (Math.abs(R[i]) > Math.abs(R[maxI])) maxI = i; }
+    var before = state.x.slice();
+    state.x[maxI] = state.x[maxI] + R[maxI];
+    state.history.push({
+      k: state.history.length,
+      xBefore: before,
+      R: R,
+      maxI: maxI,
+      xAfter: state.x.slice()
+    });
+    return Math.abs(R[maxI]);
+  }
+
+  function resetRun(){
+    state.x = state.x0.slice();
+    state.history = [];
+    renderTable();
+    renderVector();
+    document.getElementById('status-line').textContent = '';
+  }
+
+  function renderVector(){
+    var n = state.n;
+    var el = document.getElementById('vector-display');
+    el.innerHTML = '';
+    for (var i=0;i<n;i++){
+      var item = document.createElement('div');
+      item.className = 'vd-item';
+      item.innerHTML = '<span class="k">x' + sub(i+1) + '</span><span class="v">' + fmt(state.x[i]) + '</span>';
+      el.appendChild(item);
+    }
+  }
+
+  function renderTable(){
+    var n = state.n;
+    var head = document.getElementById('history-head');
+    var body = document.getElementById('history-body');
+    var headHtml = '<th>k</th>';
+    for (var i=0;i<n;i++){ headHtml += '<th>x' + sub(i+1) + '</th><th>R' + sub(i+1) + '</th>'; }
+    headHtml += '<th class="cambia-col">Cambia</th>';
+    head.innerHTML = headHtml;
+
+    var rows = '';
+    state.history.forEach(function(row){
+      var tds = '<td>' + row.k + '</td>';
+      for (var i=0;i<n;i++){
+        var isMax = (i === row.maxI);
+        tds += '<td>' + fmt(row.xBefore[i]) + '</td>';
+        tds += '<td class="' + (isMax ? 'max-residual' : '') + '">' + fmt(row.R[i]) + '</td>';
+      }
+      var varName = 'x' + sub(row.maxI+1);
+      tds += '<td class="cambia-col">' + varName + ' = ' + fmt(row.xBefore[row.maxI]) + ' + (' + fmt(row.R[row.maxI]) + ') = <span class="changed">' + fmt(row.xAfter[row.maxI]) + '</span></td>';
+      rows += '<tr>' + tds + '</tr>';
+    });
+    body.innerHTML = rows;
+  }
+
+  // ---------------- buttons ----------------
+  document.getElementById('btn-step').addEventListener('click', function(){
+    if (!checkDiagonal()) return;
+    stepOnce();
+    renderTable();
+    renderVector();
+    document.getElementById('status-line').textContent = 'Iteración ' + state.history.length + ' realizada.';
+  });
+
+  document.getElementById('btn-reset').addEventListener('click', function(){
+    resetRun();
+  });
+
+  document.getElementById('btn-run').addEventListener('click', function(){
+    if (!checkDiagonal()) return;
+    var n = parseInt(document.getElementById('iter-count').value, 10) || 1;
+    n = Math.max(1, Math.min(60, n));
+    var autoStop = document.getElementById('auto-stop').checked;
+    var converged = false;
+    for (var i=0;i<n;i++){
+      var maxAbsR = stepOnce();
+      if (autoStop && maxAbsR < 1e-6){ converged = true; break; }
+    }
+    renderTable();
+    renderVector();
+    var statusEl = document.getElementById('status-line');
+    if (converged){
+      statusEl.textContent = 'Convergió en la iteración ' + state.history.length + ' (residuo < 1e-6).';
+    } else {
+      statusEl.textContent = state.history.length + ' iteración(es) realizadas.';
+    }
+  });
+
+  // ---------------- active nav highlighting ----------------
+  var sections = document.querySelectorAll('main section[id]');
+  var navLinks = document.querySelectorAll('nav.rail a');
+  function onScroll(){
+    var pos = window.scrollY + 120;
+    var current = sections[0] ? sections[0].id : '';
+    sections.forEach(function(sec){
+      if (sec.offsetTop <= pos) current = sec.id;
+    });
+    navLinks.forEach(function(a){
+      a.classList.toggle('active', a.getAttribute('href') === '#' + current);
+    });
+  }
+  window.addEventListener('scroll', onScroll, {passive:true});
+
+  // ---------------- init ----------------
+  loadExample('3x3', false);
+  onScroll();
+})();
+</script>
 </body>
 </html>
